@@ -1,47 +1,61 @@
 #!/usr/bin/env python
 import requests
-import json
 import time
 import turtle
 
-__author__ = 'mprodhan/yabamov'
+__author__ = 'mprodhan/yabamov/denas/madarp'
+
+base_url = "http://api.open-notify.org"
 
 def astro_name():
-    get_a = "http://api.open-notify.org/astros.json"
-    r = requests.get(get_a)
-    json_r = json.loads(r.text)
-    for info in json_r['people']:
-        print(info)
-    print('Total number of faculty in ISS: ' + str(json_r['number']))
+    r = requests.get(base_url + "/astros.json")
+    r.raise_for_status()
+    return r.json()['people']
+
 
 def iss_location():
-    get_loc = "http://api.open-notify.org/iss-now.json"
-    url = 'http://maps.googleapis.com/maps/api/geocode/json'
-    api_key = "AIzaSyC_6q5u5NeyvzFTHIZzPleWL5n-cUulVU0key"
-    
-    req = requests.get(get_loc)
-    req_json = json.loads(req.text)
-    req_coord = req_json['iss_position']
-    req_lon = req_json['iss_position']['longitude']
-    req_lat = req_json['iss_position']['latitude']
-    print("The coordinates of the ISS: " + req_lon, req_lat)
-    
-    place =input(req_coord)
-    req_obj = requests.get(url + 'coordinates =' +
-                place + '&key =' + api_key)
-    python_obj = req_obj.json()
-    t = req_json['timestamp']
-    time_stamp = time.ctime(t)
-    print(req_obj, "at", time_stamp)
+    req = requests.get(base_url + "/iss-now.json")
+    req.raise_for_status()
+    req_coord = req.json()['iss_position']
+    req_lon = float(req_coord['longitude'])
+    req_lat = float(req_coord['latitude'])
+    return (req_lat, req_lon)
+
+def compute_risetime(lat, lon):
+    coord = {'lat': lat, 'lon': lon}
+    r = requests.get(base_url + '/iss-pass.json', params=coord)
+    risetime = r.json()['response'][0]['risetime']
+    time_stamp = time.ctime(risetime)
+    # print(req_obj)
+    return risetime
     # unable to get time_stamp; ran it on python interpreter and it prints
 
-def world_map():
-    pass
+def world_map(lat, lon):
+    # iss_location()
+    # lon = req_json['iss_position']['longitude']
+    # window Setup
+    iss = turtle.Turtle()
+    screen = turtle.Screen()
+    screen.register_shape("iss.gif")
+    screen.setup(720, 360)
+    screen.bgpic("map.gif")
+    screen.setworldcoordinates(-180, -90, 180, 90)
+    iss.penup()
+    iss.shape("iss.gif")
+    iss.goto(lon, lat)
+    turtle.done()
 
 def main():
-    astro_name()
-    iss_location()
-    world_map()
+    astro_dict = astro_name()
+    for a in astro_dict:
+        print(a)
+    print('Total number of faculty in ISS: ' + str(len(astro_dict)))
+    lat, lon = iss_location()
+    print(f"The coordinates of the ISS: lat = {lat}, lon = {lon}")
+    indy_lat = 39.79100
+    indy_lon = -86.148003
+    compute_risetime(indy_lat, indy_lon)
+    world_map(lat, lon)
 
 
 if __name__ == '__main__':
